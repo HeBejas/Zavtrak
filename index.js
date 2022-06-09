@@ -6,6 +6,7 @@ const token = '5319818931:AAHPEeBbK73oZyss95EdOScfQa0oV-tJamY'
 const bot = new TelegramApi(token, {polling: true})
 
 const fs = require('fs');
+const { parse } = require('path');
 const parsed = fs.readFileSync('parsed.json')
 
 // меню по категориям
@@ -85,6 +86,7 @@ const runBot = () => {
         {command: '/cart', description: 'корзина'},
         {command: '/cartclear', description: 'полностью очистить корзину'},
         {command: '/order', description: 'оформить заказ'},
+        {command: '/history', description: 'история заказов за неделю'},
     ])
 
     // обработка сообщений пользователя
@@ -92,6 +94,8 @@ const runBot = () => {
         const chatId = msg.chat.id
         const text = msg.text
         const userId = msg.from.id.toString()
+
+        let today = new Date().toLocaleDateString()
 
         // обработка превышения допустимого размера сообщения
         if(text.length >= 500) {
@@ -105,6 +109,7 @@ const runBot = () => {
             usersData[userId]["cart"] = {}
             usersData[userId]["cost"] = 0
             usersData[userId]["number"] = {}
+            usersData[userId]["history"] = {}
 
             let firstcounter = 1
             for(category in food) {
@@ -255,7 +260,7 @@ const runBot = () => {
                         usersData[userId]["cart"][orders[current]] = foodId[orders[current]]
                         usersData[userId]["cost"] += foodId[orders[current]][1]
                         ++usersData[userId]["number"][orders[current]]
-                        currentText += "Позиция *" + orders[current] + "* добавлена в корзину" + "\n\n"
+                        currentText += "*" + foodId[orders[current]][0] + "* добавлено в корзину" + "\n\n"
                     }
                     else {
                         if(orders[current] in foodId)
@@ -343,10 +348,66 @@ const runBot = () => {
             if(currentText == "")
                 return bot.sendMessage(chatId, "Вы не можете оформить пустой заказ")
             else {
-                currentText += "Стоимость заказа: " + usersData[userId]["cost"] + " " + "рублей"
                 await bot.sendMessage(chatId, "Заказ отправлен менеджеру")
+                let currentOrderInfo = []
+                currentOrderInfo.push(currentText)
+                currentOrderInfo.push(usersData[userId]["cost"])
+                if(!(today in usersData[userId]["history"])) {
+                    usersData[userId]["history"][today] = []
+                    usersData[userId]["history"][today].push(currentOrderInfo)
+                }
+                else {
+                    usersData[userId]["history"][today].push(currentOrderInfo)
+                }
+                currentText += "Стоимость заказа: " + usersData[userId]["cost"] + " " + "рублей"
+                for(current in usersData[userId]["number"])
+                    usersData[userId]["number"][current] = 0
+                usersData[userId]["cart"] = {}
+                usersData[userId]["cost"] = 0
                 return bot.sendMessage(5364353649, clientName + currentText, {parse_mode: 'Markdown'})
             }
+        }
+
+        if(text == '/history') {
+            let currentText = ""
+
+            let weekSum = 0
+
+            for(let shift = 0; shift <= 6; ++shift) {
+                let date = new Date()
+                date.setDate(date.getDate() - shift)
+                date = date.toLocaleDateString()
+                if(date in usersData[userId]["history"]) {
+                    currentText = "*" + date + "*" + "\n\n"
+                    let k = 1
+                    let dateSum = 0
+                    for(current in usersData[userId]["history"][date]) {
+                        currentText += "*" + k.toString() + "*" + "\n\n" 
+                        currentText += usersData[userId]["history"][date][current][0]
+                        currentText += "Стоимость заказа: " + usersData[userId]["history"][date][current][1].toString() + " " + "рублей" + "\n\n"
+                        dateSum += usersData[userId]["history"][date][current][1]
+                        ++k
+                    }
+
+                    if(currentText == "")
+                        continue
+
+                    currentText += "*" + "Отчёт за" + " " + date.toString() + "*" + "\n\n"
+                    currentText += "Общая стоимость заказов за " + "*" + date + "*" + " " + "составляет" + " " + dateSum.toString() + " " + "рублей" + "\n\n"
+                    weekSum += dateSum
+                }
+            }
+
+            if(currentText == "")
+                return bot.sendMessage(chatId, "История заказов за последнюю неделю пуста")
+
+            let weekResult = ""
+
+            weekResult += "*" + "Отчёт за неделю" + "*" + "\n\n"
+            weekResult += "Общая стоимость заказов за последнюю неделю составляет" + " " + weekSum.toString() + " " + "рублей" + "\n\n"
+
+            await bot.sendMessage(chatId, currentText, {parse_mode: 'Markdown'})
+            return bot.sendMessage(chatId, weekResult, {parse_mode: 'Markdown'})
         }
 
         // команды
