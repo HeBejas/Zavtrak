@@ -1,12 +1,10 @@
 // 5319818931:AAHPEeBbK73oZyss95EdOScfQa0oV-tJamY
-let {PythonShell} = require('python-shell')
 
 const TelegramApi = require('node-telegram-bot-api')
 const token = '5319818931:AAHPEeBbK73oZyss95EdOScfQa0oV-tJamY'
 const bot = new TelegramApi(token, {polling: true})
 
 const fs = require('fs');
-const { parse } = require('path');
 const parsed = fs.readFileSync('parsed.json')
 
 // меню по категориям
@@ -368,6 +366,7 @@ const runBot = () => {
             }
         }
 
+        // история заказов за неделю
         if(text == '/history') {
             let currentText = ""
 
