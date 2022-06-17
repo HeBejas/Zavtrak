@@ -4,69 +4,20 @@ const TelegramApi = require('node-telegram-bot-api')
 const token = '5319818931:AAHPEeBbK73oZyss95EdOScfQa0oV-tJamY'
 const bot = new TelegramApi(token, {polling: true})
 
-const fs = require('fs');
-const parsed = fs.readFileSync('parsed.json')
+const { Client} = require('pg')
 
-// меню по категориям
-const food = JSON.parse(parsed)
+const dataBase = new Client({
+    host: 'localhost',
+    user: 'postgres', 
+    port: 5432, 
+    password: '12-sss-qLL-w',
+    database: 'tg-bot-dataBase',
+})
 
-// меню по позициям
-const foodId = {}
+dataBase.connect()
 
-// данные пользователей
-const usersData = {}
-
-// парсинг опций (название, цена)
-function getExtra(extra, id, foodId, mainName, mainCost) {
-    let pos = -1, name = "", cost = ""
-    for(let i = 0; i < extra.length; ++i) {
-        if(extra[i] == '(' && extra[i + 1] == '+') {
-            pos = i
-            for(let curpos = pos + 1; curpos < extra.length; ++curpos) {
-                cost += extra[curpos]
-            }
-            break
-        }
-        if(pos == -1)
-            name += extra[i]
-    }
-    foodId[id].push(mainName + " " + "[+" + name.replace(/\s+/g, ' ').trim() + "]")
-    if(cost == "")
-        cost = 0
-    else 
-        cost = parseFloat(cost)
-    foodId[id].push(cost + mainCost)
-    return
-}
-
-// генерация номеров позиций
-function generateId(food, foodId) {
-    let firstmark = 1
-    for(category in food) {
-        let secondmark = 1
-        for(let item = 0; item < food[category].length; ++item) {
-            id = firstmark.toString() + "." + secondmark.toString()
-            foodId[id] = []
-            foodId[id].push(food[category][item][0].replace(/\s+/g, ' ').trim())
-            foodId[id].push(parseFloat(food[category][item][1]))
-            if(food[category][item].length == 4) {
-                let thirdmark = 1
-                for(let extra = 0; extra < food[category][item][3].length; ++extra) {
-                    id = firstmark.toString() + "." + secondmark.toString() + "." + thirdmark.toString()
-                    cur = []
-                    foodId[id] = []
-                    getExtra(food[category][item][3][extra].replace(/\s+/g, ' ').trim(), id, foodId, food[category][item][0], parseFloat(food[category][item][1]))
-                    thirdmark++
-                }
-            }
-            secondmark++
-        }
-        firstmark++
-    }
-}
-
-// запуск генерации номеров позиций
-generateId(food, foodId)
+//данные пользователей 
+let usersData = {}
 
 // запуск бота
 const runBot = () => {
@@ -81,11 +32,32 @@ const runBot = () => {
         {command: '/menu', description: 'показать меню'},
         {command: '/add', description: 'добавить позицию в корзину'}, 
         {command: '/delete', description: 'удалить позицию из корзины'},
-        {command: '/cart', description: 'корзина'},
+        {command: '/cart', description: 'показать содержимое корзины'},
         {command: '/cartclear', description: 'полностью очистить корзину'},
         {command: '/order', description: 'оформить заказ'},
         {command: '/history', description: 'история заказов за неделю'},
     ])
+
+    async function generateMenu() {
+        let response = dataBase.query('SELECT * FROM menu_table');
+        return (await response).rows
+    }
+
+    async function getHistory(date, userId) {
+        let response = dataBase.query(`SELECT order_time, order_list, order_cost FROM orders WHERE (user_id = $1 and order_date = $2)`, [userId, date])
+        return (await response).rows
+    }
+
+    async function insertOrderData(userId, userName, time, today, orderList, cost) {
+        dataBase.query(`INSERT INTO orders (user_id, user_name, order_time, order_date, order_list, order_cost) VALUES ($1, $2, $3, $4, $5, $6)`, [userId, userName, time, today, orderList, cost])
+        return
+    }
+
+    // меню по позициям
+    let foodId = {}
+
+    // структурированное меню
+    let food = {"1": {}, "2": {}, "3": {}, "4": {}, "5": {}, "6": {}, "7": {}, "8": {}}
 
     // обработка сообщений пользователя
     bot.on('message', async msg => {
@@ -93,7 +65,32 @@ const runBot = () => {
         const text = msg.text
         const userId = msg.from.id.toString()
 
-        let today = new Date().toLocaleDateString()
+        // получение меню из базы данных
+        let result = (await generateMenu())
+
+        for(row in result)
+            foodId[result[row].id] = [result[row].name, result[row].cost]
+
+        // генерация структурированного меню
+        for(position in foodId) {
+            let dotCounter = 0, parentPosition = ""
+
+            for(let i = 0; i < position.length; ++i) {
+                if(position[i] == '.')
+                    ++dotCounter
+                if(dotCounter < 2)
+                    parentPosition += position[i]
+            }
+            
+            if(dotCounter == 1) {
+                if(parentPosition + ".1" in foodId)
+                    food[position[0]][position] = [foodId[position][0], foodId[position][1], {}]
+                else 
+                    food[position[0]][position] = [foodId[position][0], foodId[position][1]]
+            }
+            else if(dotCounter == 2)
+                food[position[0]][parentPosition][2][position] = [foodId[position][0], foodId[position][1]]
+        }
 
         // обработка превышения допустимого размера сообщения
         if(text.length >= 500) {
@@ -103,30 +100,18 @@ const runBot = () => {
         // регистрация пользователя
         if(!(userId in usersData)) {
             usersData[userId] = {}
-            usersData[userId]["isStarted"] = true
             usersData[userId]["cart"] = {}
             usersData[userId]["cost"] = 0
-            usersData[userId]["number"] = {}
-            usersData[userId]["history"] = {}
+            usersData[userId]["number"] = {} 
 
-            let firstcounter = 1
-            for(category in food) {
-                let secondcounter = 1
-                for(item in food[category]) {
-                    if(food[category][item].length == 3) {
-                        usersData[userId]["number"][(firstcounter.toString() + "." + secondcounter.toString())] = 0
+            for(category in food)
+                for(position in food[category])
+                    if(food[category][position].length == 2)
+                        usersData[userId]["number"][position] = 0
+                    else {
+                        for(option in food[category][position][2])
+                            usersData[userId]["number"][option] = 0
                     }
-                    else if(food[category][item].length == 4) {
-                        let thirdcounter = 1
-                        for(let extra = 0; extra < food[category][item][3].length; ++extra) {
-                            usersData[userId]["number"][(firstcounter.toString() + "." + secondcounter.toString() + "." + thirdcounter.toString())] = 0
-                            ++thirdcounter
-                        }
-                    }
-                    ++secondcounter
-                }
-                ++firstcounter
-            }
         }
 
         console.log(userId)
@@ -179,32 +164,26 @@ const runBot = () => {
 
         // меню
         if(text == '/menu') {
-            let firstmark = 1
+            let categoryName = {"1": "Салаты", "2": "Первые блюда", "3": "Вторые блюда", "4": "Блюда в горшочках", "5": "Выпечка", "6": "Напитки", "7": "Пироги", "8": "Прочее"}
 
-            // вывод категории
             for(category in food) {
-                let current = (`*${firstmark} ${category}*` + "\n\n")
-                let secondmark = 1
 
-                // вывод элементов категории
-                for(let item = 0; item < food[category].length; ++item) {
-                    if(food[category][item].length == 3)
-                        current += `${firstmark}.${secondmark}` + " " + food[category][item][0].replace(/\s+/g, ' ').trim() + " (" + food[category][item][1].replace(/\s+/g, ' ').trim() + ")" + " " + `/add${firstmark}d${secondmark}` + "\n\n"
-                    else if(food[category][item].length == 4)
-                        current += `${firstmark}.${secondmark}` + " " + food[category][item][0].replace(/\s+/g, ' ').trim() + " (" + food[category][item][1].replace(/\s+/g, ' ').trim() + ")" + "\n\n"
+                if(food[category].length == 0)
+                    continue
 
-                    // вывод опций элементов категории
-                    if(food[category][item].length == 4) {
-                        let thirdmark = 1
-                        for(let extra = 0; extra < food[category][item][3].length; ++extra) {
-                            current += `${firstmark}.${secondmark}.${thirdmark}` + " " + food[category][item][3][extra].replace(/\s+/g, ' ').trim() + " " + `/add${firstmark}d${secondmark}d${thirdmark}` + "\n\n"
-                            ++thirdmark
-                        }
+                let current = "*" + category + " " + categoryName[category] + "*" + "\n\n"
+
+                for(position in food[category]) {
+                    if(food[category][position].length == 2)
+                        current += position + " " + foodId[position][0] + " " + "_(" + foodId[position][1] + " " + "руб." + ")_" + " " + "/add" + position.replaceAll(".", "d") + "\n\n"
+                    else {
+                        current += position + " " + foodId[position][0] + " " + "_(" + foodId[position][1] + " " + "руб." + ")_" + "\n\n"
+                        for(option in food[category][position][2])
+                            current += option + " " + foodId[option][0] + " " + "_(" + foodId[option][1] + " " + "руб." + ")_" + " " + "/add" + option.replaceAll(".", "d") + "\n\n"
                     }
-                    ++secondmark
                 }
-                ++firstmark
-                await bot.sendMessage(chatId, current, {parse_mode: 'Markdown'})
+
+                await bot.sendMessage(chatId, current, {parse_mode: "Markdown"})
             }
             return
         }
@@ -268,7 +247,7 @@ const runBot = () => {
                     }
                 }
             }
-            return bot.sendMessage(chatId, currentText, {parse_mode: 'Markdown'})
+            return bot.sendMessage(chatId, currentText, {parse_mode: 'MarkdownV2'})
         }
 
         // удаление позиции из корзины
@@ -313,12 +292,12 @@ const runBot = () => {
         if(text == '/cart') {
             let currentText = ""
 
-            for(current in usersData[userId]["cart"]) {
+            for(current in usersData[userId]["cart"])
                 currentText += usersData[userId]["cart"][current][0] + " (" + usersData[userId]["number"][current] + " " + "шт.)" + " " + "/delete" + (current.replace(".", "d")).replace('.', "d") + "\n\n"
-            }
-            if(currentText == "") {
+
+            if(currentText == "") 
                 return bot.sendMessage(chatId, "Корзина пуста")
-            }
+
             await bot.sendMessage(chatId, currentText, {parse_mode: ''})
             return bot.sendMessage(chatId, "Стоимость заказа: " + usersData[userId]["cost"] + " " + "рублей")
         }
@@ -336,77 +315,70 @@ const runBot = () => {
 
         // оформление заказа
         if(text == '/order') {
-            let clientName = "*" + msg.from.first_name + "*" + "\n\n"
-            let currentText = ""
+            let orderList = ""
 
-            for(current in usersData[userId]["cart"]) {
-                currentText += usersData[userId]["cart"][current][0] + " (" + usersData[userId]["number"][current] + " " + "шт.)" + "\n\n"
-            }
+            for(position in usersData[userId]["cart"])
+                orderList += foodId[position][0] + " " + " " + "*(" + usersData[userId]["number"][position] + " шт." + " × " + foodId[position][1] + "руб." + ")*" + "\n\n"
 
-            if(currentText == "")
+            let userName = msg.from.first_name.toString()
+            if(msg.from.last_name != undefined)
+                userName += " " + msg.from.last_name.toString()
+
+            let today = new Date()
+            let time = today.toLocaleTimeString()
+            today = today.toLocaleDateString()
+
+            if(orderList == "")
                 return bot.sendMessage(chatId, "Вы не можете оформить пустой заказ")
-            else {
-                await bot.sendMessage(chatId, "Заказ отправлен менеджеру")
-                let currentOrderInfo = []
-                currentOrderInfo.push(currentText)
-                currentOrderInfo.push(usersData[userId]["cost"])
-                if(!(today in usersData[userId]["history"])) {
-                    usersData[userId]["history"][today] = []
-                    usersData[userId]["history"][today].push(currentOrderInfo)
-                }
-                else {
-                    usersData[userId]["history"][today].push(currentOrderInfo)
-                }
-                currentText += "Стоимость заказа: " + usersData[userId]["cost"] + " " + "рублей"
-                for(current in usersData[userId]["number"])
-                    usersData[userId]["number"][current] = 0
-                usersData[userId]["cart"] = {}
-                usersData[userId]["cost"] = 0
-                return bot.sendMessage(5364353649, clientName + currentText, {parse_mode: 'Markdown'})
-            }
+
+            await insertOrderData(userId, userName, time, today, orderList, usersData[userId]["cost"])
+            await bot.sendMessage(chatId, "Заказ оформлен" + "\n\n")
+
+            let orderInfo = "Заказ пользователя" + " " + "*" + userName + "*" + "\n\n"
+            orderInfo += orderList
+            orderInfo += "Стоимость заказа: " + usersData[userId]["cost"] + " " + "рублей" + "\n\n"
+
+            usersData[userId]["cart"] = {}
+            usersData[userId]["cost"] = 0
+
+            for(position in usersData[userId]["number"])
+                usersData[userId]["number"][position] = 0
+
+            return bot.sendMessage(5364353649, orderInfo, {parse_mode: 'Markdown'})
         }
 
         // история заказов за неделю
         if(text == '/history') {
-            let currentText = ""
-
-            let weekSum = 0
-
+            let historyData = {}
             for(let shift = 0; shift <= 6; ++shift) {
                 let date = new Date()
                 date.setDate(date.getDate() - shift)
                 date = date.toLocaleDateString()
-                if(date in usersData[userId]["history"]) {
-                    currentText = "*" + date + "*" + "\n\n"
-                    let k = 1
-                    let dateSum = 0
-                    for(current in usersData[userId]["history"][date]) {
-                        currentText += "*" + k.toString() + "*" + "\n\n" 
-                        currentText += usersData[userId]["history"][date][current][0]
-                        currentText += "Стоимость заказа: " + usersData[userId]["history"][date][current][1].toString() + " " + "рублей" + "\n\n"
-                        dateSum += usersData[userId]["history"][date][current][1]
-                        ++k
-                    }
+                let result = await getHistory(date, chatId.toString())
 
-                    if(currentText == "")
-                        continue
+                if(result.length == 0)
+                    continue
 
-                    currentText += "*" + "Отчёт за" + " " + date.toString() + "*" + "\n\n"
-                    currentText += "Общая стоимость заказов за " + "*" + date + "*" + " " + "составляет" + " " + dateSum.toString() + " " + "рублей" + "\n\n"
-                    weekSum += dateSum
-                }
+                historyData[date] = []
+
+                for(row of result)
+                    historyData[date].push([row.order_time, row.order_list, row.order_cost])
             }
 
-            if(currentText == "")
-                return bot.sendMessage(chatId, "История заказов за последнюю неделю пуста")
+            let totalPrice = 0
 
-            let weekResult = ""
+            for(date in historyData) {
+                let currentText = "*" + date + "*" + "\n\n"
+                for(order in historyData[date]) {
+                    currentText += "Время заказа: " + "*" + historyData[date][order][0] + "*" + "\n\n"
+                    currentText += historyData[date][order][1]
+                    currentText += "Стоимость заказа: " + historyData[date][order][2] + " " + "рублей" + "\n\n"
+                    totalPrice += historyData[date][order][2]
+                }
+                await bot.sendMessage(chatId, currentText, {parse_mode: 'Markdown'})
+            }
 
-            weekResult += "*" + "Отчёт за неделю" + "*" + "\n\n"
-            weekResult += "Общая стоимость заказов за последнюю неделю составляет" + " " + weekSum.toString() + " " + "рублей" + "\n\n"
-
-            await bot.sendMessage(chatId, currentText, {parse_mode: 'Markdown'})
-            return bot.sendMessage(chatId, weekResult, {parse_mode: 'Markdown'})
+            return bot.sendMessage(chatId, "Общая стоимость заказов за последнюю неделю: " + totalPrice + " " + "рублей")
         }
 
         // команды
@@ -418,12 +390,6 @@ const runBot = () => {
         }
 
         return bot.sendMessage(chatId, 'Чтобы посмотреть доступные команды, введите */commands*', {parse_mode: 'Markdown'})
-    })
-
-    // обработка нажатий
-    bot.on('callback_query', async msg => {
-        const data = msg.data
-        const chatId = msg.message.chat.id
     })
 }
 
