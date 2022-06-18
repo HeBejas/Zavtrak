@@ -1,0 +1,19 @@
+-- Table: public.orders
+
+-- DROP TABLE IF EXISTS public.orders;
+
+CREATE TABLE IF NOT EXISTS public.orders
+(
+    user_id character varying(255) COLLATE pg_catalog."default",
+    user_name character varying(255) COLLATE pg_catalog."default",
+    order_time character varying(100) COLLATE pg_catalog."default",
+    order_date character varying(100) COLLATE pg_catalog."default",
+    order_list character varying(2000) COLLATE pg_catalog."default",
+    order_cost double precision,
+    confirmed boolean
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.orders
+    OWNER to postgres;
