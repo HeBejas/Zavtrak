@@ -1,0 +1,16 @@
+-- Table: public.menu_table
+
+-- DROP TABLE IF EXISTS public.menu_table;
+
+CREATE TABLE IF NOT EXISTS public.menu_table
+(
+    id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    name character varying(200) COLLATE pg_catalog."default",
+    cost double precision,
+    CONSTRAINT menu_table_pkey PRIMARY KEY (id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.menu_table
+    OWNER to postgres;
