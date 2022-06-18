@@ -71,7 +71,7 @@ def options(extra, id, foodid, mainname, maincost):
     name.strip()
     name.replace(" ", "")
     name = " ".join(name.split())
-    newname = mainname + ' ' + "(+" + name + ')'
+    newname = mainname + ' ' + "\[+" + name + ']'
     foodid[id].append(newname)
     if cost == "":
         cost = 0
@@ -81,7 +81,7 @@ def options(extra, id, foodid, mainname, maincost):
     return
 
 
-foodid={}
+foodid = {}
 
 def genid(foodid, allfood):
     firstmark = 1
@@ -130,10 +130,27 @@ con = psycopg2.connect(
 print("Database opened successfully")
 cur = con.cursor()
 
-cur.execute("DELETE From menu_table")    
-    
+cur.execute("select * from menu_table")   
+fetched_menu = cur.fetchall()
+
+fetchedID = []
+parsedID = []
+
+for row in fetched_menu:
+    fetchedID.append(row[0])
+
 for position in foodid:
-    cur.execute("INSERT INTO menu_table (id, name, cost) VALUES (%s, %s, %s)", (position, foodid[position][0], foodid[position][1]))
+    parsedID.append(str(position))
+
+for id in fetchedID:
+    if id not in parsedID:
+        cur.execute("DELETE FROM menu_table WHERE id = %s", (id, ))
+        
+for id in parsedID:
+    cur.execute("SELECT id FROM menu_table WHERE id = %s", (id, ))
+    fetched = cur.fetchone()
+    if fetched == None:
+        cur.execute("INSERT INTO menu_table (id, name, cost) VALUES (%s, %s, %s)", (id, foodid[id][0], foodid[id][1]))
     
 con.commit()  
 print("Records inserted successfully") 
