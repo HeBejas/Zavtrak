@@ -1,0 +1,186 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 14.3
+-- Dumped by pg_dump version 14.3
+
+-- Started on 2022-06-19 14:32:49
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 209 (class 1259 OID 16414)
+-- Name: menu_table; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.menu_table (
+    id character varying(20) NOT NULL,
+    name character varying(200),
+    cost double precision
+);
+
+
+ALTER TABLE public.menu_table OWNER TO postgres;
+
+--
+-- TOC entry 210 (class 1259 OID 16419)
+-- Name: orders; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.orders (
+    user_id character varying(255),
+    user_name character varying(255),
+    order_time character varying(100),
+    order_date character varying(100),
+    order_list character varying(2000),
+    order_cost double precision,
+    confirmed boolean
+);
+
+
+ALTER TABLE public.orders OWNER TO postgres;
+
+--
+-- TOC entry 3308 (class 0 OID 16414)
+-- Dependencies: 209
+-- Data for Name: menu_table; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO public.menu_table VALUES ('1.1', 'Салат Винегрет', 30);
+INSERT INTO public.menu_table VALUES ('1.2', 'Салат Наслаждение', 40);
+INSERT INTO public.menu_table VALUES ('1.3', 'Салат Нежный', 50);
+INSERT INTO public.menu_table VALUES ('1.4', 'Салат Радужный', 50);
+INSERT INTO public.menu_table VALUES ('2.1', 'Борщ', 45);
+INSERT INTO public.menu_table VALUES ('2.2', 'Окрошка с колбасой', 60);
+INSERT INTO public.menu_table VALUES ('2.3', 'Рассольник', 40);
+INSERT INTO public.menu_table VALUES ('2.4', 'Солянка домашняя', 55);
+INSERT INTO public.menu_table VALUES ('3.1', 'Горбуша по-французки', 100);
+INSERT INTO public.menu_table VALUES ('3.2', 'Котлета куриная', 40);
+INSERT INTO public.menu_table VALUES ('3.2.1', 'Котлета куриная \[+Рис с овощами(150г)]', 70);
+INSERT INTO public.menu_table VALUES ('3.2.2', 'Котлета куриная \[+Гречневая каша(150г)]', 70);
+INSERT INTO public.menu_table VALUES ('3.2.3', 'Котлета куриная \[+Картофельное пюре(150г)]', 80);
+INSERT INTO public.menu_table VALUES ('3.2.4', 'Котлета куриная \[+без гарнира]', 40);
+INSERT INTO public.menu_table VALUES ('3.2.5', 'Котлета куриная \[+Капуста тушенная(150г)]', 80);
+INSERT INTO public.menu_table VALUES ('3.2.6', 'Котлета куриная \[+Макароны]', 70);
+INSERT INTO public.menu_table VALUES ('3.3', 'Курица по французски', 95);
+INSERT INTO public.menu_table VALUES ('3.4', 'Пельмени Домашние', 75);
+INSERT INTO public.menu_table VALUES ('3.4.1', 'Пельмени Домашние \[+сметана]', 75);
+INSERT INTO public.menu_table VALUES ('3.4.2', 'Пельмени Домашние \[+кетчуп]', 75);
+INSERT INTO public.menu_table VALUES ('3.4.3', 'Пельмени Домашние \[+ни чего не добавлять]', 75);
+INSERT INTO public.menu_table VALUES ('3.4.4', 'Пельмени Домашние \[+майонез]', 75);
+INSERT INTO public.menu_table VALUES ('3.5', 'Пельмени из говядины и курицы', 80);
+INSERT INTO public.menu_table VALUES ('3.5.1', 'Пельмени из говядины и курицы \[+майонез]', 80);
+INSERT INTO public.menu_table VALUES ('3.5.2', 'Пельмени из говядины и курицы \[+сметана]', 80);
+INSERT INTO public.menu_table VALUES ('3.5.3', 'Пельмени из говядины и курицы \[+кетчуп]', 80);
+INSERT INTO public.menu_table VALUES ('3.5.4', 'Пельмени из говядины и курицы \[+ни чего не добавлять]', 80);
+INSERT INTO public.menu_table VALUES ('3.6', 'Пельмени мясо-капустные', 65);
+INSERT INTO public.menu_table VALUES ('3.6.1', 'Пельмени мясо-капустные \[+майонез]', 65);
+INSERT INTO public.menu_table VALUES ('3.6.2', 'Пельмени мясо-капустные \[+сметана]', 65);
+INSERT INTO public.menu_table VALUES ('3.6.3', 'Пельмени мясо-капустные \[+кетчуп]', 65);
+INSERT INTO public.menu_table VALUES ('3.6.4', 'Пельмени мясо-капустные \[+ни чего не добавлять]', 65);
+INSERT INTO public.menu_table VALUES ('3.7', 'Пельмени с бульоном.', 80);
+INSERT INTO public.menu_table VALUES ('3.8', 'Плов с курицей', 85);
+INSERT INTO public.menu_table VALUES ('3.9', 'Тефтели', 50);
+INSERT INTO public.menu_table VALUES ('3.9.1', 'Тефтели \[+Капуста тушенная(150г)]', 90);
+INSERT INTO public.menu_table VALUES ('3.9.2', 'Тефтели \[+Рис с овощами к]', 80);
+INSERT INTO public.menu_table VALUES ('3.9.3', 'Тефтели \[+Макароны]', 80);
+INSERT INTO public.menu_table VALUES ('3.9.4', 'Тефтели \[+Гречневая каша(150г)]', 80);
+INSERT INTO public.menu_table VALUES ('3.9.5', 'Тефтели \[+Картофельное пюре(150г)]', 90);
+INSERT INTO public.menu_table VALUES ('3.9.6', 'Тефтели \[+без гарнира]', 50);
+INSERT INTO public.menu_table VALUES ('4.1', 'Жаркое с курицей в горшочке (350гр)', 150);
+INSERT INTO public.menu_table VALUES ('4.2', 'Жаркое со свининой в горшочке (350гр)', 150);
+INSERT INTO public.menu_table VALUES ('4.3', 'Курица со сметаной и грибами (350гр)', 160);
+INSERT INTO public.menu_table VALUES ('4.4', 'Печень с гречкой в сметанном соусе (350гр)', 110);
+INSERT INTO public.menu_table VALUES ('5.1', 'Блины 2шт', 50);
+INSERT INTO public.menu_table VALUES ('5.1.1', 'Блины 2шт \[+ни чего не добавлять]', 50);
+INSERT INTO public.menu_table VALUES ('5.1.2', 'Блины 2шт \[+Сметана]', 60);
+INSERT INTO public.menu_table VALUES ('5.1.3', 'Блины 2шт \[+джем]', 60);
+INSERT INTO public.menu_table VALUES ('5.1.4', 'Блины 2шт \[+сгущенка 30 гр]', 60);
+INSERT INTO public.menu_table VALUES ('5.2', 'Блины с начинкой', 0);
+INSERT INTO public.menu_table VALUES ('5.2.1', 'Блины с начинкой \[+Картошка]', 35);
+INSERT INTO public.menu_table VALUES ('5.2.2', 'Блины с начинкой \[+Сыр и колбаса]', 50);
+INSERT INTO public.menu_table VALUES ('5.2.3', 'Блины с начинкой \[+Творог]', 50);
+INSERT INTO public.menu_table VALUES ('5.3', 'Булочка с изюмом', 25);
+INSERT INTO public.menu_table VALUES ('5.4', 'Сочень с творогом', 35);
+INSERT INTO public.menu_table VALUES ('5.5', 'Хлеб 1 кус', 3);
+INSERT INTO public.menu_table VALUES ('5.6', 'Чебурек с мясом', 40);
+INSERT INTO public.menu_table VALUES ('6.1', 'Компот из сухофруктов 0,25 л', 30);
+INSERT INTO public.menu_table VALUES ('7.1', 'Пирог мясной(кусочками)', 450);
+INSERT INTO public.menu_table VALUES ('7.1.1', 'Пирог мясной(кусочками) \[+1 кг]', 450);
+INSERT INTO public.menu_table VALUES ('7.1.2', 'Пирог мясной(кусочками) \[+2 кг]', 900);
+INSERT INTO public.menu_table VALUES ('7.1.3', 'Пирог мясной(кусочками) \[+1,5 кг]', 675);
+INSERT INTO public.menu_table VALUES ('7.2', 'Пирог сладкий', 300);
+INSERT INTO public.menu_table VALUES ('7.2.1', 'Пирог сладкий \[+1 кг]', 300);
+INSERT INTO public.menu_table VALUES ('7.2.2', 'Пирог сладкий \[+2 кг]', 600);
+INSERT INTO public.menu_table VALUES ('7.2.3', 'Пирог сладкий \[+1,5 кг]', 450);
+INSERT INTO public.menu_table VALUES ('7.3', 'Чизкейк с фруктами', 600);
+INSERT INTO public.menu_table VALUES ('7.3.1', 'Чизкейк с фруктами \[+1 кг]', 600);
+INSERT INTO public.menu_table VALUES ('7.3.2', 'Чизкейк с фруктами \[+1,5 кг]', 900);
+INSERT INTO public.menu_table VALUES ('7.4', 'Киш с капустой и фаршем', 450);
+INSERT INTO public.menu_table VALUES ('7.4.1', 'Киш с капустой и фаршем \[+1,5 кг]', 675);
+INSERT INTO public.menu_table VALUES ('7.4.2', 'Киш с капустой и фаршем \[+1 кг]', 450);
+INSERT INTO public.menu_table VALUES ('7.5', 'Киш с курицей и грибами', 400);
+INSERT INTO public.menu_table VALUES ('7.5.1', 'Киш с курицей и грибами \[+1,5 кг]', 600);
+INSERT INTO public.menu_table VALUES ('7.5.2', 'Киш с курицей и грибами \[+1 кг]', 400);
+INSERT INTO public.menu_table VALUES ('7.6', 'Киш с рыбой, рисом и грибами', 450);
+INSERT INTO public.menu_table VALUES ('7.6.1', 'Киш с рыбой, рисом и грибами \[+1,5 кг]', 675);
+INSERT INTO public.menu_table VALUES ('7.6.2', 'Киш с рыбой, рисом и грибами \[+1 кг]', 450);
+INSERT INTO public.menu_table VALUES ('7.7', 'Пирог капустный с яйцом', 250);
+INSERT INTO public.menu_table VALUES ('7.7.1', 'Пирог капустный с яйцом \[+2 кг]', 500);
+INSERT INTO public.menu_table VALUES ('7.7.2', 'Пирог капустный с яйцом \[+1,5 кг]', 375);
+INSERT INTO public.menu_table VALUES ('7.7.3', 'Пирог капустный с яйцом \[+1 кг]', 250);
+INSERT INTO public.menu_table VALUES ('7.8', 'Пирог мясо капустный', 350);
+INSERT INTO public.menu_table VALUES ('7.8.1', 'Пирог мясо капустный \[+2 кг]', 700);
+INSERT INTO public.menu_table VALUES ('7.8.2', 'Пирог мясо капустный \[+1,5 кг]', 525);
+INSERT INTO public.menu_table VALUES ('7.8.3', 'Пирог мясо капустный \[+1 кг]', 350);
+INSERT INTO public.menu_table VALUES ('7.9', 'Пирог мясо картофельный', 300);
+INSERT INTO public.menu_table VALUES ('7.9.1', 'Пирог мясо картофельный \[+2 кг]', 600);
+INSERT INTO public.menu_table VALUES ('7.9.2', 'Пирог мясо картофельный \[+1,5 кг]', 450);
+INSERT INTO public.menu_table VALUES ('7.9.3', 'Пирог мясо картофельный \[+1 кг]', 300);
+INSERT INTO public.menu_table VALUES ('7.10', 'Пирог рыбный', 400);
+INSERT INTO public.menu_table VALUES ('7.10.1', 'Пирог рыбный \[+2 кг]', 800);
+INSERT INTO public.menu_table VALUES ('7.10.2', 'Пирог рыбный \[+1,5 кг]', 600);
+INSERT INTO public.menu_table VALUES ('7.10.3', 'Пирог рыбный \[+1 кг]', 400);
+INSERT INTO public.menu_table VALUES ('8.1', 'Вилка', 2);
+INSERT INTO public.menu_table VALUES ('8.2', 'Кетчуп', 4);
+INSERT INTO public.menu_table VALUES ('8.3', 'Ложка', 2);
+INSERT INTO public.menu_table VALUES ('8.4', 'Майонез', 4);
+
+
+--
+-- TOC entry 3309 (class 0 OID 16419)
+-- Dependencies: 210
+-- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+
+
+--
+-- TOC entry 3168 (class 2606 OID 16418)
+-- Name: menu_table menu_table_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.menu_table
+    ADD CONSTRAINT menu_table_pkey PRIMARY KEY (id);
+
+
+-- Completed on 2022-06-19 14:32:50
+
+--
+-- PostgreSQL database dump complete
+--
+
